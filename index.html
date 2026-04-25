@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oban Signal Dashboard</title>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+  
+  .header { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 20px; border-bottom: 1px solid #00ff88/20; }
+  .header h1 { font-size: 24px; color: #00ff88; font-weight: 700; }
+  .header p { color: #888; font-size: 13px; margin-top: 4px; }
+  
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px; }
+  .stat-card { background: #1a1a2e; border: 1px solid #2a2a4e; border-radius: 12px; padding: 16px; text-align: center; }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: #00ff88; }
+  .stat-card .label { font-size: 11px; color: #888; margin-top: 4px; text-transform: uppercase; }
+  
+  .filters { padding: 0 20px 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { background: #1a1a2e; border: 1px solid #2a2a4e; color: #888; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .filter-btn.active { background: #00ff88; color: #0a0a0f; border-color: #00ff88; font-weight: 600; }
+  
+  .signals-grid { padding: 0 20px 20px; display: grid; gap: 12px; }
+  
+  .signal-card { background: #1a1a2e; border: 1px solid #2a2a4e; border-radius: 16px; overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
+  .signal-card:hover { transform: translateY(-2px); border-color: #00ff88/50; }
+  .signal-card.buy { border-left: 3px solid #00ff88; }
+  .signal-card.watch { border-left: 3px solid #ffaa00; }
+  .signal-card.skip { border-left: 3px solid #ff4444; }
+  
+  .card-image { width: 100%; height: 140px; object-fit: cover; background: #0d0d1a; }
+  .card-image-placeholder { width: 100%; height: 140px; background: linear-gradient(135deg, #1a1a2e, #0d0d1a); display: flex; align-items: center; justify-content: center; font-size: 40px; }
+  
+  .card-body { padding: 14px; }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .token-name { font-size: 16px; font-weight: 700; color: #fff; }
+  .token-symbol { font-size: 12px; color: #00ff88; background: #00ff8820; padding: 2px 8px; border-radius: 10px; }
+  
+  .card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .card-stat { background: #0d0d1a; border-radius: 8px; padding: 8px; }
+  .card-stat .s-label { font-size: 10px; color: #666; text-transform: uppercase; }
+  .card-stat .s-value { font-size: 14px; font-weight: 600; color: #fff; margin-top: 2px; }
+  
+  .ai-section { background: #0d0d1a; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+  .ai-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .ai-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+  .verdict { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 10px; }
+  .verdict.BUY { background: #00ff8830; color: #00ff88; }
+  .verdict.WATCH { background: #ffaa0030; color: #ffaa00; }
+  .verdict.SKIP { background: #ff444430; color: #ff4444; }
+  .ai-reason { font-size: 12px; color: #aaa; font-style: italic; }
+  .confidence-bar { height: 4px; background: #2a2a4e; border-radius: 2px; margin-top: 6px; }
+  .confidence-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #00ff88, #00aaff); }
+  
+  .performance { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .max-x { font-size: 20px; font-weight: 700; color: #00ff88; }
+  .max-x.low { color: #888; }
+  .max-x.mid { color: #ffaa00; }
+  .max-x.high { color: #00ff88; }
+  
+  .ca-box { background: #0d0d1a; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .ca-text { font-size: 11px; color: #666; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+  .copy-btn { font-size: 10px; color: #00ff88; cursor: pointer; padding: 3px 8px; border: 1px solid #00ff8840; border-radius: 6px; white-space: nowrap; }
+  
+  .card-links { display: flex; gap: 6px; flex-wrap: wrap; }
+  .link-btn { font-size: 11px; color: #888; background: #0d0d1a; border: 1px solid #2a2a4e; padding: 4px 10px; border-radius: 8px; text-decoration: none; }
+  .link-btn.mevx { background: #00ff8815; color: #00ff88; border-color: #00ff8840; }
+  
+  .timestamp { font-size: 10px; color: #444; margin-top: 8px; }
+  
+  .live-dot { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; margin-right: 6px; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  
+  .empty-state { text-align: center; padding: 60px 20px; color: #444; }
+  .empty-state p { font-size: 16px; }
+
+  .loading { text-align: center; padding: 40px; color: #444; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ Oban Signal Dashboard</h1>
+  <p><span class="live-dot"></span>Live monitoring PumpFun tokens</p>
+</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <div class="value" id="total-signals">0</div>
+    <div class="label">Total Signals</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" id="buy-count" style="color:#00ff88">0</div>
+    <div class="label">AI Buy</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" id="watch-count" style="color:#ffaa00">0</div>
+    <div class="label">AI Watch</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" id="best-performer">-</div>
+    <div class="label">Best X</div>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="setFilter('all')">All</button>
+  <button class="filter-btn" onclick="setFilter('BUY')">🟢 Buy</button>
+  <button class="filter-btn" onclick="setFilter('WATCH')">🟡 Watch</button>
+  <button class="filter-btn" onclick="setFilter('SKIP')">🔴 Skip</button>
+</div>
+
+<div class="signals-grid" id="signals-container">
+  <div class="loading">Loading signals...</div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAUEKYGwpm9Xqaz4RPjJVVwnkLzJ-xcdTE",
+  authDomain: "oban-signal.firebaseapp.com",
+  databaseURL: "https://oban-signal-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "oban-signal",
+  storageBucket: "oban-signal.firebasestorage.app",
+  messagingSenderId: "813685937519",
+  appId: "1:813685937519:web:7d7eaa36d40b344cf7049a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let allSignals = [];
+let currentFilter = 'all';
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  renderSignals();
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function copyCA(ca) {
+  navigator.clipboard.writeText(ca);
+  event.target.textContent = '✓ Copied';
+  setTimeout(() => event.target.textContent = 'Copy', 1500);
+}
+
+function renderSignals() {
+  const container = document.getElementById('signals-container');
+  let filtered = allSignals;
+  
+  if (currentFilter !== 'all') {
+    filtered = allSignals.filter(s => s.ai_verdict === currentFilter);
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>No signals yet</p></div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(signal => {
+    const verdictClass = signal.ai_verdict || 'SKIP';
+    const maxX = signal.max_x || 1;
+    const xClass = maxX >= 5 ? 'high' : maxX >= 2 ? 'mid' : 'low';
+
+    return `
+    <div class="signal-card ${verdictClass.toLowerCase()}">
+      ${signal.image_url 
+        ? `<img class="card-image" src="${signal.image_url}" onerror="this.style.display='none'" loading="lazy">`
+        : `<div class="card-image-placeholder">🪙</div>`
+      }
+      <div class="card-body">
+        <div class="card-header">
+          <div class="token-name">${signal.name || '-'}</div>
+          <div class="token-symbol">$${signal.symbol || '-'}</div>
+        </div>
+        
+        <div class="card-stats">
+          <div class="card-stat">
+            <div class="s-label">Market Cap</div>
+            <div class="s-value">${signal.mc || '-'}</div>
+          </div>
+          <div class="card-stat">
+            <div class="s-label">Launched</div>
+            <div class="s-value">${signal.launched || '-'}</div>
+          </div>
+        </div>
+
+        ${signal.ai_verdict ? `
+        <div class="ai-section">
+          <div class="ai-header">
+            <span class="ai-label">🤖 AI Analysis</span>
+            <span class="verdict ${signal.ai_verdict}">${signal.ai_verdict}</span>
+          </div>
+          <div class="ai-reason">${signal.ai_reason || '-'}</div>
+          <div class="confidence-bar">
+            <div class="confidence-fill" style="width:${signal.ai_confidence || 0}%"></div>
+          </div>
+        </div>` : ''}
+
+        <div class="performance">
+          <div class="max-x ${xClass}">${maxX}X</div>
+          <div style="font-size:12px;color:#666">Peak performance</div>
+        </div>
+
+        ${signal.ca ? `
+        <div class="ca-box">
+          <div class="ca-text">${signal.ca}</div>
+          <div class="copy-btn" onclick="copyCA('${signal.ca}')">Copy</div>
+        </div>` : ''}
+
+        <div class="timestamp">${formatTime(signal.timestamp)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+  function updateStats() {
+  document.getElementById('total-signals').textContent = allSignals.length;
+  document.getElementById('buy-count').textContent = allSignals.filter(s => s.ai_verdict === 'BUY').length;
+  document.getElementById('watch-count').textContent = allSignals.filter(s => s.ai_verdict === 'WATCH').length;
+  const bestX = Math.max(...allSignals.map(s => s.max_x || 1));
+  document.getElementById('best-performer').textContent = bestX > 1 ? `${bestX}X` : '-';
+}
+
+// Listen realtime Firebase
+db.ref('signals').on('value', (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    allSignals = Object.entries(data)
+      .map(([id, val]) => ({ id, ...val }))
+      .sort((a, b) => b.timestamp - a.timestamp);
+  } else {
+    allSignals = [];
+  }
+  updateStats();
+  renderSignals();
+});
+</script>
+</body>
+</html>
