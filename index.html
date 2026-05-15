@@ -8,10 +8,20 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --bg:#ffffff;--sidebar:#f9f9f9;--border:#e5e5e5;
-  --accent:#10a37f;--accent2:#0d8f6e;
-  --text:#0d0d0d;--text2:#6e6e6e;--text3:#acacac;
-  --hover:#f0f0f0;--shadow:0 1px 3px rgba(0,0,0,0.08);
+  --bg:#0b0b0b;
+  --sidebar:#111111;
+  --border:#232323;
+
+  --accent:#10a37f;
+  --accent2:#0d8f6e;
+
+  --text:#ffffff;
+  --text2:#b3b3b3;
+  --text3:#6b6b6b;
+
+  --hover:#1a1a1a;
+
+  --shadow:0 1px 8px rgba(0,0,0,0.45);
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Geist',sans-serif;}
 #app{display:flex;position:fixed;inset:0;flex-direction:row;background:var(--bg);}
@@ -122,6 +132,86 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Geist',s
   #sidebarOverlay.show{display:block;}
   .mobile-menu-btn{display:flex;}
   #main{width:100%;}
+}
+/* ===== DARK MODE EXTRA ===== */
+
+body,
+html,
+#app{
+  background:#0b0b0b;
+}
+
+.main-header{
+  background:#111111;
+}
+
+.input-wrap{
+  background:#111111;
+}
+
+.input-box{
+  background:#181818;
+  border:1px solid #2a2a2a;
+}
+
+.input-box:focus-within{
+  background:#1b1b1b;
+}
+
+.search-box{
+  background:#181818;
+  border:1px solid #2a2a2a;
+}
+
+.search-box input{
+  color:#fff;
+}
+
+.new-chat-btn,
+.history-item,
+.sidebar-toggle,
+.logout-btn{
+  color:#d1d1d1;
+}
+
+.bubble-user{
+  background:#1f1f1f;
+  color:#fff;
+}
+
+.bubble-ai{
+  color:#f1f1f1;
+}
+
+.result-card{
+  background:#151515;
+  border:1px solid #2a2a2a;
+}
+
+.attach-card{
+  background:#181818;
+  border:1px solid #2a2a2a;
+}
+
+#userInput{
+  color:#fff;
+}
+
+#userInput::placeholder{
+  color:#777;
+}
+
+.main-title,
+.welcome-title,
+.sidebar-logo,
+.user-name{
+  color:#fff;
+}
+
+.welcome-sub,
+.user-role,
+.input-hint{
+  color:#9a9a9a;
 }
 </style>
 </head>
