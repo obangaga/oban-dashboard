@@ -763,8 +763,11 @@ async function callAPI(messages) {
     })
   });
   if(!r.ok) throw new Error('API Error '+r.status);
-  const data = await r.json();
-  return {choices:[{message:{content: data.text || data.output || JSON.stringify(data)}}]};
+  const text = await r.text();
+if(!text || text.trim() === '') throw new Error('Response kosong dari n8n');
+const data = JSON.parse(text);
+const reply = data.text || data.output || data.message || JSON.stringify(data);
+return {choices:[{message:{content: reply}}]};
 }
 
 // ===== PRINT =====
